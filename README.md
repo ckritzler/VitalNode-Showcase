@@ -22,7 +22,7 @@ BLE Sensors → Android App → Local API → Browser Overlay → OBS / PRISM
 
 ## Current status
 
-VitalNode currently has a working Android prototype with BLE sensor discovery and live heart rate support.
+VitalNode currently has a working Android BLE prototype with live heart rate support, battery level reading and an early dashboard UI for discovering and connecting BLE fitness sensors.
 
 Implemented so far:
 
@@ -35,13 +35,23 @@ Implemented so far:
 * Bluetooth and Location readiness checks
 * User guidance when Bluetooth or Location is disabled
 * BLE scanner
+* Timed BLE scan flow with countdown
+* BLE scan timeout handling
+* Scan-again flow without clearing already discovered devices
+* BLE scan stops when the app goes into the background
+* BLE scan stops before connecting to a sensor
 * BLE device classification
+* Unknown BLE devices are ignored in the UI
+* Reduced BLE scan log noise from unknown devices
 * Heart rate sensor detection
 * BLE connection manager
 * Heart Rate Measurement notifications
 * Battery Level reading
+* Periodic battery level refresh
 * Live dashboard card for connected sensors
+* Empty sensor slot placeholders
 * Manual connect / disconnect flow
+* Manual disconnect tracking as preparation for future reconnect handling
 * Graceful cleanup on disconnect
 * Mock data generator kept for later testing
 
@@ -50,6 +60,40 @@ Tested with:
 * **Polar H9 Heart Rate Sensor**
 * **Android 10 device**
 * Bluetooth + Location based BLE scanning
+
+---
+
+## Current BLE behavior
+
+VitalNode currently supports the following BLE flow:
+
+```text
+User starts scan
+        ↓
+App scans for a limited time
+        ↓
+Supported fitness sensors appear in the dashboard
+        ↓
+User selects a sensor
+        ↓
+Scan stops before connection
+        ↓
+App connects and enables Heart Rate notifications
+        ↓
+Battery level is read
+        ↓
+Live data updates the dashboard
+```
+
+The app keeps already discovered devices visible during repeated scans. This prevents the dashboard from flickering or temporarily clearing known sensors when the user scans again.
+
+The BLE scan is stopped when:
+
+* the scan timer finishes
+* the app goes into the background
+* the user starts connecting to a sensor
+
+The active BLE connection is kept alive when the app stops scanning.
 
 ---
 
@@ -162,12 +206,19 @@ The app currently checks whether Bluetooth and Location are ready before scannin
 * [x] Local data repository
 * [x] Test dashboard with mock values
 * [x] BLE scanner
+* [x] Timed BLE scan countdown
+* [x] BLE scan lifecycle handling
 * [x] BLE device classification
 * [x] Heart rate BLE support
 * [x] Battery level reading
+* [x] Periodic battery refresh
 * [x] Connect / disconnect flow
 * [x] BLE readiness checks
+* [x] Basic dashboard UI
+* [x] Empty sensor slot placeholders
+* [x] Manual disconnect tracking
 * [ ] Dashboard design v1
+* [ ] Reconnect handling for unexpected disconnects
 * [ ] Local HTTP API
 * [ ] WebSocket live endpoint
 * [ ] Browser overlay
@@ -239,15 +290,33 @@ Goal:
 * Display live heart rate and battery level
 * Handle Bluetooth / Location readiness
 * Provide a basic dashboard UI
+* Handle scan lifecycle safely
+
+Current progress:
+
+* BLE scanning works
+* Polar H9 discovery works
+* Heart Rate Measurement notifications work
+* Battery Level reading works
+* Manual connect / disconnect works
+* Scan lifecycle handling is implemented
+* Manual disconnect tracking is implemented
+
+Next steps:
+
+* Improve handling of unexpected BLE disconnects
+* Prepare reconnect flow
+* Continue dashboard UI polish
 
 ### Milestone 2: Dashboard Design v1
 
 Goal:
 
 * Improve visual layout
-* Add sensor status sections
-* Add clearer connected / disconnected states
+* Add clearer sensor status sections
+* Improve connected / disconnected states
 * Improve empty states and user guidance
+* Prepare the UI for multiple sensor types
 
 ### Milestone 3: Local telemetry API
 
@@ -255,6 +324,7 @@ Goal:
 
 * Expose live sensor data through a local HTTP endpoint
 * Prepare JSON output for browser overlays
+* Keep API structure ready for additional metrics
 
 ### Milestone 4: Live overlay
 
@@ -262,6 +332,7 @@ Goal:
 
 * Build a browser overlay for OBS / PRISM
 * Display heart rate and future cycling metrics in real time
+* Test browser-source integration in streaming software
 
 ---
 
